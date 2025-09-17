@@ -7,10 +7,9 @@ import {
   TextInput,
   TouchableOpacity,
   SafeAreaView,
-  Image,
   Alert,
   ActivityIndicator,
-  Dimensions,
+  Modal,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
