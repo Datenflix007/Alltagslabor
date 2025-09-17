@@ -13,21 +13,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  SafeAreaView,
-  Alert,
-  ActivityIndicator,
-  Modal,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-
 interface ExperimentStep {
   type: string;
   content: string;
