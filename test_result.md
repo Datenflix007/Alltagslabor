@@ -101,3 +101,122 @@
 #====================================================================================================
 # Testing Data - Main Agent and testing sub agent both should log testing data below this section
 #====================================================================================================
+
+user_problem_statement: "Test the Alltagslabor backend API endpoints including basic endpoints, search functionality, and specific experiment retrieval. The backend should fetch data from GitLab repository and return properly formatted JSON responses."
+
+backend:
+  - task: "Root endpoint (GET /api/)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ Root endpoint working correctly. Returns message 'Alltagslabor API' and version '1.0.0'"
+
+  - task: "Get all experiments (GET /api/experiments)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ Successfully retrieves 14 experiments from GitLab repository with proper structure (title, shortDescription, subject, gradeLevel, steps, schoolType)"
+
+  - task: "Search experiments functionality (GET /api/experiments/search)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ All search filters working correctly: subject filter (13 Physik experiments), grade level filter (13 grade 7 experiments), school type filter (1 Gymnasium experiment), free text search (3 Mechanik experiments), combined filters (0 Physik+Grade 8). Case-insensitive search working properly."
+
+  - task: "Get specific experiment by title (GET /api/experiments/{title})"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ Successfully retrieves specific experiment 'Mechanik Experimente' with proper URL encoding. Returns 404 for non-existent experiments as expected."
+
+  - task: "Get subjects by state (GET /api/subjects)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ Successfully retrieves subjects data for 16 states from GitLab repository with proper JSON structure"
+
+  - task: "Get school types by state (GET /api/school-types)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ Successfully retrieves school types data for 16 states from GitLab repository with proper JSON structure"
+
+  - task: "Get available grades (GET /api/grades)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ Successfully retrieves and sorts available grade levels ['7', '8'] from experiments data"
+
+  - task: "Get impressum text (GET /api/impressum)"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "testing"
+        comment: "✅ Successfully retrieves impressum text (475 characters) from GitLab repository"
+
+frontend:
+  # No frontend testing performed as per instructions
+
+metadata:
+  created_by: "testing_agent"
+  version: "1.0"
+  test_sequence: 1
+  run_ui: false
+
+test_plan:
+  current_focus:
+    - "All backend API endpoints tested and working"
+  stuck_tasks: []
+  test_all: true
+  test_priority: "high_first"
+
+agent_communication:
+  - agent: "testing"
+    message: "Comprehensive backend API testing completed successfully. All 8 core endpoints tested with various parameters and edge cases. GitLab data integration working properly. API returns well-structured JSON responses. No critical issues found."
