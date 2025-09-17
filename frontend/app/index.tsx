@@ -13,7 +13,20 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  SafeAreaView,
+  Alert,
+  ActivityIndicator,
+  Modal,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface ExperimentStep {
   type: string;
@@ -37,60 +50,36 @@ export default function AlltagsLaborApp() {
   const [filteredExperiments, setFilteredExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
-  const [selectedSubject, setSelectedSubject] = useState('Alle');
-  const [selectedGrade, setSelectedGrade] = useState('Alle');
-  const [selectedSchoolType, setSelectedSchoolType] = useState('Alle');
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [selectedExperiment, setSelectedExperiment] = useState<Experiment | null>(null);
-  const [subjects, setSubjects] = useState<string[]>([]);
-  const [grades, setGrades] = useState<string[]>([]);
-  const [schoolTypes, setSchoolTypes] = useState<string[]>([]);
 
   useEffect(() => {
-    loadInitialData();
+    loadExperiments();
   }, []);
 
-  const loadInitialData = async () => {
+  const loadExperiments = async () => {
     try {
       setLoading(true);
-
-      // Load experiments
-      const experimentsResponse = await fetch(`${BACKEND_URL}/api/experiments`);
-      const experimentsData = await experimentsResponse.json();
-      setExperiments(experimentsData);
-      setFilteredExperiments(experimentsData);
-
-      // Load grades
-      const gradesResponse = await fetch(`${BACKEND_URL}/api/grades`);
-      const gradesData = await gradesResponse.json();
-      setGrades(gradesData);
-
-      // Extract unique subjects and school types from experiments
-      const uniqueSubjects = [...new Set(experimentsData.map((exp: Experiment) => exp.subject))];
-      const uniqueSchoolTypes = [...new Set(experimentsData.map((exp: Experiment) => exp.schoolType))];
-      
-      setSubjects(uniqueSubjects);
-      setSchoolTypes(uniqueSchoolTypes);
-
+      const response = await fetch(`${BACKEND_URL}/api/experiments`);
+      const data = await response.json();
+      setExperiments(data);
+      setFilteredExperiments(data);
     } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Fehler', 'Daten konnten nicht geladen werden');
+      console.error('Error loading experiments:', error);
+      Alert.alert('Fehler', 'Experimente konnten nicht geladen werden');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSearch = async () => {
+    if (!searchText.trim()) {
+      setFilteredExperiments(experiments);
+      return;
+    }
+
     try {
       setLoading(true);
-      
-      const params = new URLSearchParams();
-      if (selectedSubject !== 'Alle') params.append('subject', selectedSubject);
-      if (selectedGrade !== 'Alle') params.append('gradeLevel', selectedGrade);
-      if (selectedSchoolType !== 'Alle') params.append('schoolType', selectedSchoolType);
-      if (searchText.trim()) params.append('freetext', searchText.trim());
-
-      const response = await fetch(`${BACKEND_URL}/api/experiments/search?${params.toString()}`);
+      const response = await fetch(`${BACKEND_URL}/api/experiments/search?freetext=${encodeURIComponent(searchText)}`);
       const data = await response.json();
       setFilteredExperiments(data);
     } catch (error) {
@@ -99,15 +88,6 @@ export default function AlltagsLaborApp() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const clearSearch = () => {
-    setSearchText('');
-    setSelectedSubject('Alle');
-    setSelectedGrade('Alle');
-    setSelectedSchoolType('Alle');
-    setFilteredExperiments(experiments);
-    setShowAdvancedSearch(false);
   };
 
   const openExperiment = (experiment: Experiment) => {
@@ -131,7 +111,7 @@ export default function AlltagsLaborApp() {
           <Text style={styles.cardGrade}>Klasse {experiment.gradeLevel}</Text>
         </View>
       </View>
-      <Text style={styles.cardDescription}>{experiment.shortDescription}</Text>
+      <Text style={styles.cardDescription}>{experiment.shortDescription.replace(/<[^>]*>/g, '')}</Text>
       <View style={styles.cardFooter}>
         <Text style={styles.schoolType}>{experiment.schoolType}</Text>
         <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -143,8 +123,8 @@ export default function AlltagsLaborApp() {
     if (!selectedExperiment) return null;
 
     return (
-      <View style={styles.experimentDetailContainer}>
-        <SafeAreaView style={styles.detailContent}>
+      <Modal visible={true} animationType="slide">
+        <SafeAreaView style={styles.detailContainer}>
           <View style={styles.detailHeader}>
             <TouchableOpacity onPress={closeExperiment} style={styles.backButton}>
               <Ionicons name="arrow-back" size={24} color="#c41e3a" />
@@ -159,7 +139,9 @@ export default function AlltagsLaborApp() {
               <Text style={styles.detailSchoolType}>{selectedExperiment.schoolType}</Text>
             </View>
 
-            <Text style={styles.detailDescription}>{selectedExperiment.shortDescription}</Text>
+            <Text style={styles.detailDescription}>
+              {selectedExperiment.shortDescription.replace(/<[^>]*>/g, '')}
+            </Text>
 
             {selectedExperiment.steps.map((step, index) => (
               <View key={index} style={styles.stepContainer}>
@@ -184,16 +166,14 @@ export default function AlltagsLaborApp() {
             ))}
           </ScrollView>
         </SafeAreaView>
-      </View>
+      </Modal>
     );
   };
 
-  if (selectedExperiment) {
-    return renderExperimentDetail();
-  }
-
   return (
     <SafeAreaView style={styles.container}>
+      {renderExperimentDetail()}
+      
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerContent}>
@@ -219,74 +199,9 @@ export default function AlltagsLaborApp() {
           />
         </View>
 
-        <View style={styles.searchButtons}>
-          <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-            <Text style={styles.searchButtonText}>SUCHEN</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.advancedButton}
-            onPress={() => setShowAdvancedSearch(!showAdvancedSearch)}
-          >
-            <Text style={styles.advancedButtonText}>Erweiterte Suche</Text>
-          </TouchableOpacity>
-        </View>
-
-        {showAdvancedSearch && (
-          <View style={styles.filtersContainer}>
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Fach:</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedSubject}
-                  onValueChange={setSelectedSubject}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Alle" value="Alle" />
-                  {subjects.map((subject, index) => (
-                    <Picker.Item key={index} label={subject} value={subject} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Klassenstufe:</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedGrade}
-                  onValueChange={setSelectedGrade}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Alle" value="Alle" />
-                  {grades.map((grade, index) => (
-                    <Picker.Item key={index} label={grade} value={grade} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            <View style={styles.filterGroup}>
-              <Text style={styles.filterLabel}>Schulform:</Text>
-              <View style={styles.pickerContainer}>
-                <Picker
-                  selectedValue={selectedSchoolType}
-                  onValueChange={setSelectedSchoolType}
-                  style={styles.picker}
-                >
-                  <Picker.Item label="Alle" value="Alle" />
-                  {schoolTypes.map((type, index) => (
-                    <Picker.Item key={index} label={type} value={type} />
-                  ))}
-                </Picker>
-              </View>
-            </View>
-
-            <TouchableOpacity style={styles.clearButton} onPress={clearSearch}>
-              <Text style={styles.clearButtonText}>Filter zurücksetzen</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <Text style={styles.searchButtonText}>SUCHEN</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Experiments List */}
@@ -384,65 +299,17 @@ const styles = StyleSheet.create({
     height: 48,
     fontSize: 16,
   },
-  searchButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
   searchButton: {
     backgroundColor: '#c41e3a',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 6,
+    alignSelf: 'center',
   },
   searchButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 14,
-  },
-  advancedButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  advancedButtonText: {
-    color: '#c41e3a',
-    fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-  filtersContainer: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  filterGroup: {
-    marginBottom: 12,
-  },
-  filterLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 4,
-    color: '#333',
-  },
-  pickerContainer: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-  },
-  picker: {
-    height: 50,
-  },
-  clearButton: {
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    marginTop: 8,
-  },
-  clearButtonText: {
-    color: '#666',
-    fontSize: 14,
-    textDecorationLine: 'underline',
   },
   content: {
     flex: 1,
@@ -515,12 +382,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#999',
   },
-  experimentDetailContainer: {
+  detailContainer: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  detailContent: {
-    flex: 1,
   },
   detailHeader: {
     flexDirection: 'row',
