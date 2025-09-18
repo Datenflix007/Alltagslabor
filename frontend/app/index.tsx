@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   Alert,
   ActivityIndicator,
   Modal,
+  Image,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
 
 interface ExperimentStep {
   type: string;
@@ -30,8 +32,110 @@ interface Experiment {
 }
 
 const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const ASSET_BASE_URL = 'https://gitlab.com/Datenflix007/alltagslabordata/-/raw/main';
 
 const sanitizeHtml = (value?: string) => (value ? value.replace(/<[^>]*>/g, '') : '');
+const displayTitle = (value: string) => value.replace(/^_+/, '').trim();
+const shouldHideExperiment = (experiment: Experiment) => experiment.title.trim().startsWith('__Beispiel');
+const resolveAssetUrl = (path?: string) => {
+  if (!path) {
+    return '';
+  }
+  if (/^https?:/i.test(path)) {
+    return path;
+  }
+  let normalized = path;
+  while (normalized.startsWith('/')) {
+    normalized = normalized.slice(1);
+  }
+  return `${ASSET_BASE_URL}/${normalized}`;
+};
+const isTutorialExperiment = (experiment?: Experiment | null) => {
+  if (!experiment?.title) {
+    return false;
+  }
+  const title = experiment.title.trim();
+  return title.startsWith('_Beispiel') || title.startsWith('__Beispiel');
+};
+
+type AudioPlayerProps = {
+  uri: string;
+  label?: string;
+};
+
+const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, label }) => {
+  const soundRef = useRef<Audio.Sound | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync().catch(() => undefined);
+        soundRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleTogglePlayback = async () => {
+    try {
+      if (isLoading) {
+        return;
+      }
+      setIsLoading(true);
+      if (!soundRef.current) {
+        const { sound } = await Audio.Sound.createAsync({ uri });
+        soundRef.current = sound;
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (!status.isLoaded) {
+            return;
+          }
+          if (status.didJustFinish) {
+            setIsPlaying(false);
+            sound.stopAsync().catch(() => undefined);
+          } else {
+            setIsPlaying(status.isPlaying ?? false);
+          }
+        });
+        await sound.playAsync();
+        setIsPlaying(true);
+      } else {
+        const status = await soundRef.current.getStatusAsync();
+        if (!status.isLoaded) {
+          await soundRef.current.unloadAsync();
+          soundRef.current = null;
+        } else if (status.isPlaying) {
+          await soundRef.current.pauseAsync();
+          setIsPlaying(false);
+        } else {
+          await soundRef.current.playAsync();
+          setIsPlaying(true);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Audio', 'Audiodatei konnte nicht abgespielt werden.');
+      console.error('Audio playback error', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <View style={styles.audioContainer}>
+      <TouchableOpacity
+        style={[styles.audioButton, isPlaying ? styles.audioButtonActive : null]}
+        onPress={handleTogglePlayback}
+        disabled={isLoading}
+      >
+        <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" style={styles.audioButtonIcon} />
+        <Text style={styles.audioButtonText}>
+          {isLoading ? 'Lädt...' : isPlaying ? 'Pause' : 'Abspielen'}
+        </Text>
+      </TouchableOpacity>
+      {label ? <Text style={styles.audioLabel}>{label}</Text> : null}
+    </View>
+  );
+};
 
 export default function AlltagsLaborApp() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
@@ -39,6 +143,7 @@ export default function AlltagsLaborApp() {
   const [loading, setLoading] = useState(true);
   const [searchText, setSearchText] = useState('');
   const [selectedExperiment, setSelectedExperiment] = useState<Experiment | null>(null);
+  const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
 
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedSchoolType, setSelectedSchoolType] = useState('Alle');
@@ -48,36 +153,47 @@ export default function AlltagsLaborApp() {
   const [subjectOptions, setSubjectOptions] = useState<string[]>(['Alle']);
   const [gradeOptions, setGradeOptions] = useState<string[]>(['Alle']);
 
+  const visibleExperiments = useMemo(
+    () => experiments.filter((experiment) => !shouldHideExperiment(experiment)),
+    [experiments]
+  );
+
   useEffect(() => {
     loadExperiments();
   }, []);
 
   useEffect(() => {
     if (!experiments.length) {
+      setSelectedSchoolType('Alle');
+      setSelectedSubject('Alle');
+      setSelectedGrade('Alle');
       setSchoolOptions(['Alle']);
       setSubjectOptions(['Alle']);
       setGradeOptions(['Alle']);
       return;
     }
 
-    const unique = (values: string[]) => (
+    const unique = (values: string[]) =>
       Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
         a.localeCompare(b, 'de', { numeric: true, sensitivity: 'base' })
-      )
-    );
+      );
 
-    setSchoolOptions(['Alle', ...unique(experiments.map((exp) => exp.schoolType || ''))]);
-    setSubjectOptions(['Alle', ...unique(experiments.map((exp) => exp.subject || ''))]);
-    setGradeOptions(['Alle', ...unique(experiments.map((exp) => exp.gradeLevel || ''))]);
-  }, [experiments]);
+    setSchoolOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.schoolType || ''))]);
+    setSubjectOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.subject || ''))]);
+    setGradeOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.gradeLevel || ''))]);
+  }, [experiments, visibleExperiments]);
+
+  useEffect(() => {
+    setTutorialStepIndex(0);
+  }, [selectedExperiment]);
 
   const loadExperiments = async () => {
     try {
       setLoading(true);
       const response = await fetch(`${BACKEND_URL}/api/experiments`);
-      const data = await response.json();
+      const data: Experiment[] = await response.json();
       setExperiments(data);
-      setFilteredExperiments(data);
+      setFilteredExperiments(data.filter((experiment) => !shouldHideExperiment(experiment)));
     } catch (error) {
       console.error('Error loading experiments:', error);
       Alert.alert('Fehler', 'Experimente konnten nicht geladen werden');
@@ -86,7 +202,7 @@ export default function AlltagsLaborApp() {
     }
   };
 
-  const filterData = (
+  const applyFilters = (
     searchValue: string,
     schoolTypeFilter: string,
     subjectFilter: string,
@@ -94,16 +210,16 @@ export default function AlltagsLaborApp() {
   ) => {
     const normalized = searchValue.trim().toLowerCase();
 
-    const filtered = experiments.filter((experiment) => {
-      const sanitizedTitle = experiment.title.toLowerCase();
-      const sanitizedShort = sanitizeHtml(experiment.shortDescription).toLowerCase();
-      const sanitizedSubject = (experiment.subject || '').toLowerCase();
+    const filtered = visibleExperiments.filter((experiment) => {
+      const titleLower = experiment.title.toLowerCase();
+      const shortLower = sanitizeHtml(experiment.shortDescription).toLowerCase();
+      const subjectLower = (experiment.subject || '').toLowerCase();
 
       const matchesSearch =
         normalized.length === 0 ||
-        sanitizedTitle.includes(normalized) ||
-        sanitizedShort.includes(normalized) ||
-        sanitizedSubject.includes(normalized);
+        titleLower.includes(normalized) ||
+        shortLower.includes(normalized) ||
+        subjectLower.includes(normalized);
 
       const matchesSchool =
         schoolTypeFilter === 'Alle' || experiment.schoolType === schoolTypeFilter;
@@ -123,19 +239,19 @@ export default function AlltagsLaborApp() {
     setSearchText(value);
     if (value.trim() === '') {
       setLoading(true);
-      filterData('', selectedSchoolType, selectedSubject, selectedGrade);
+      applyFilters('', selectedSchoolType, selectedSubject, selectedGrade);
     }
   };
 
   const handleSearch = () => {
     setLoading(true);
-    filterData(searchText, selectedSchoolType, selectedSubject, selectedGrade);
+    applyFilters(searchText, selectedSchoolType, selectedSubject, selectedGrade);
   };
 
   const handleApplyFilters = () => {
     setFilterModalVisible(false);
     setLoading(true);
-    filterData(searchText, selectedSchoolType, selectedSubject, selectedGrade);
+    applyFilters(searchText, selectedSchoolType, selectedSubject, selectedGrade);
   };
 
   const handleResetFilters = () => {
@@ -143,7 +259,7 @@ export default function AlltagsLaborApp() {
     setSelectedSubject('Alle');
     setSelectedGrade('Alle');
     setLoading(true);
-    filterData(searchText, 'Alle', 'Alle', 'Alle');
+    applyFilters(searchText, 'Alle', 'Alle', 'Alle');
   };
 
   const openExperiment = (experiment: Experiment) => {
@@ -154,22 +270,81 @@ export default function AlltagsLaborApp() {
     setSelectedExperiment(null);
   };
 
+  const renderStepContent = (step: ExperimentStep, index: number) => {
+    const resolvedDescription = sanitizeHtml(step.description);
+
+    const wrapStep = (key: string, child: React.ReactNode) => (
+      <View key={key} style={styles.stepContainer}>
+        {child}
+      </View>
+    );
+
+    if (step.type === 'image') {
+      const uri = resolveAssetUrl(step.content);
+      return wrapStep(
+        `image-${index}`,
+        <View style={[styles.stepBox, styles.imageBox]}>
+          <Image source={{ uri }} style={styles.stepImage} resizeMode='contain' />
+          {resolvedDescription ? (
+            <Text style={styles.stepContent}>{resolvedDescription}</Text>
+          ) : null}
+        </View>
+      );
+    }
+
+    if (step.type === 'audio') {
+      const uri = resolveAssetUrl(step.content);
+      return wrapStep(
+        `audio-${index}`,
+        <View style={[styles.stepBox, styles.audioBox]}>
+          <Text style={styles.stepTitle}>Audio</Text>
+          <AudioPlayer uri={uri} label={resolvedDescription} />
+        </View>
+      );
+    }
+
+    if (step.type === 'aufgabe') {
+      return wrapStep(
+        `aufgabe-${index}`,
+        <View style={[styles.stepBox, styles.aufgabeBox]}>
+          <Text style={styles.stepTitle}>Aufgabe:</Text>
+          <Text style={styles.stepContent}>{sanitizeHtml(step.content)}</Text>
+        </View>
+      );
+    }
+
+    if (step.type === 'merksatz') {
+      return wrapStep(
+        `merksatz-${index}`,
+        <View style={[styles.stepBox, styles.merksatzBox]}>
+          <Text style={styles.stepTitle}>Merksatz:</Text>
+          <Text style={styles.stepContent}>{sanitizeHtml(step.content)}</Text>
+        </View>
+      );
+    }
+
+    return wrapStep(
+      `text-${index}`,
+      <View style={styles.stepBox}>
+        <Text style={styles.stepContent}>{sanitizeHtml(step.content)}</Text>
+      </View>
+    );
+  };
+
   const renderExperimentCard = (experiment: Experiment, index: number) => (
     <TouchableOpacity
-      key={index}
+      key={`${experiment.title}-${index}`}
       style={styles.experimentCard}
       onPress={() => openExperiment(experiment)}
     >
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{experiment.title}</Text>
+        <Text style={styles.cardTitle}>{displayTitle(experiment.title)}</Text>
         <View style={styles.cardMeta}>
           <Text style={styles.cardSubject}>{experiment.subject}</Text>
           <Text style={styles.cardGrade}>Klasse {experiment.gradeLevel}</Text>
         </View>
       </View>
-      <Text style={styles.cardDescription}>
-        {sanitizeHtml(experiment.shortDescription)}
-      </Text>
+      <Text style={styles.cardDescription}>{sanitizeHtml(experiment.shortDescription)}</Text>
       <View style={styles.cardFooter}>
         <Text style={styles.schoolType}>{experiment.schoolType}</Text>
         <Ionicons name='chevron-forward' size={20} color='#666' />
@@ -178,7 +353,13 @@ export default function AlltagsLaborApp() {
   );
 
   const renderExperimentDetail = () => {
-    if (!selectedExperiment) return null;
+    if (!selectedExperiment) {
+      return null;
+    }
+
+    const tutorialMode = isTutorialExperiment(selectedExperiment);
+    const steps = selectedExperiment.steps || [];
+    const activeStep = tutorialMode ? steps[tutorialStepIndex] : null;
 
     return (
       <Modal visible animationType='slide'>
@@ -188,7 +369,7 @@ export default function AlltagsLaborApp() {
               <Ionicons name='arrow-back' size={22} color='#fff' />
               <Text style={styles.backButtonLabel}>Zurück</Text>
             </TouchableOpacity>
-            <Text style={styles.detailTitle}>{selectedExperiment.title}</Text>
+            <Text style={styles.detailTitle}>{displayTitle(selectedExperiment.title)}</Text>
           </View>
 
           <ScrollView style={styles.detailScroll}>
@@ -202,27 +383,39 @@ export default function AlltagsLaborApp() {
               {sanitizeHtml(selectedExperiment.shortDescription)}
             </Text>
 
-            {selectedExperiment.steps.map((step, index) => (
-              <View key={index} style={styles.stepContainer}>
-                {step.type === 'aufgabe' && (
-                  <View style={[styles.stepBox, styles.aufgabeBox]}>
-                    <Text style={styles.stepTitle}>Aufgabe:</Text>
-                    <Text style={styles.stepContent}>{sanitizeHtml(step.content)}</Text>
-                  </View>
-                )}
-                {step.type === 'merksatz' && (
-                  <View style={[styles.stepBox, styles.merksatzBox]}>
-                    <Text style={styles.stepTitle}>Merksatz:</Text>
-                    <Text style={styles.stepContent}>{sanitizeHtml(step.content)}</Text>
-                  </View>
-                )}
-                {step.type === 'text' && (
-                  <View style={styles.stepBox}>
-                    <Text style={styles.stepContent}>{sanitizeHtml(step.content)}</Text>
-                  </View>
-                )}
+            {tutorialMode ? (
+              <View>
+                {activeStep ? renderStepContent(activeStep, tutorialStepIndex) : null}
+                <View style={styles.tutorialControls}>
+                  <TouchableOpacity
+                    style={[styles.tutorialButton, tutorialStepIndex === 0 && styles.tutorialButtonDisabled]}
+                    onPress={() => setTutorialStepIndex((prev) => Math.max(prev - 1, 0))}
+                    disabled={tutorialStepIndex === 0}
+                  >
+                    <Ionicons name='chevron-back' size={18} color='#fff' />
+                    <Text style={styles.tutorialButtonText}>Zurück</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.tutorialProgress}>
+                    {tutorialStepIndex + 1}/{steps.length}
+                  </Text>
+                  <TouchableOpacity
+                    style={[
+                      styles.tutorialButton,
+                      tutorialStepIndex >= steps.length - 1 && styles.tutorialButtonDisabled,
+                    ]}
+                    onPress={() =>
+                      setTutorialStepIndex((prev) => Math.min(prev + 1, steps.length - 1))
+                    }
+                    disabled={tutorialStepIndex >= steps.length - 1}
+                  >
+                    <Text style={styles.tutorialButtonText}>Weiter</Text>
+                    <Ionicons name='chevron-forward' size={18} color='#fff' />
+                  </TouchableOpacity>
+                </View>
               </View>
-            ))}
+            ) : (
+              steps.map((step, idx) => renderStepContent(step, idx))
+            )}
           </ScrollView>
         </SafeAreaView>
       </Modal>
@@ -637,6 +830,21 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: '#ff9800',
   },
+  imageBox: {
+    alignItems: 'center',
+  },
+  stepImage: {
+    width: '100%',
+    height: 220,
+    borderRadius: 8,
+    marginBottom: 12,
+    backgroundColor: '#ddd',
+  },
+  audioBox: {
+    backgroundColor: '#f1f5ff',
+    borderWidth: 1,
+    borderColor: '#d3dcff',
+  },
   stepTitle: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -646,6 +854,62 @@ const styles = StyleSheet.create({
   stepContent: {
     fontSize: 14,
     lineHeight: 20,
+    color: '#333',
+  },
+  audioContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  audioButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#c41e3a',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    marginRight: 12,
+  },
+  audioButtonActive: {
+    backgroundColor: '#9c132b',
+  },
+  audioButtonIcon: {
+    marginRight: 6,
+  },
+  audioButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  audioLabel: {
+    flex: 1,
+    color: '#333',
+    fontSize: 13,
+  },
+  tutorialControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 16,
+  },
+  tutorialButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#c41e3a',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 24,
+  },
+  tutorialButtonDisabled: {
+    backgroundColor: '#e0e0e0',
+  },
+  tutorialButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    marginHorizontal: 4,
+  },
+  tutorialProgress: {
+    fontSize: 16,
+    fontWeight: '600',
     color: '#333',
   },
   impressumContainer: {
