@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "61cf909c-73ac-4fc6-9fe0-761153013fa0"
+      }
+    },
+    "android": {
+      "package": "com.datenflix.alltagslabor"
+    }
+  }
+}
