@@ -11,10 +11,12 @@ import {
   ActivityIndicator,
   Modal,
   Image,
+  Platform,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
+import Constants from 'expo-constants';
 
 interface ExperimentStep {
   type: string;
@@ -31,7 +33,24 @@ interface Experiment {
   schoolType: string;
 }
 
-const BACKEND_URL = process.env.EXPO_PUBLIC_BACKEND_URL;
+const resolveBackendUrl = () => {
+  const envUrl = process.env.EXPO_PUBLIC_BACKEND_URL?.trim();
+  if (envUrl && !envUrl.includes('localhost') && !envUrl.includes('127.0.0.1')) {
+    return envUrl;
+  }
+  if (Platform.OS !== 'web') {
+    const hostUri = Constants?.expoGoConfig?.debuggerHost || Constants?.expoConfig?.hostUri || Constants?.manifest?.hostUri;
+    if (hostUri) {
+      const host = hostUri.split(':')[0];
+      if (host) {
+        return `http://${host}:8001`;
+      }
+    }
+  }
+  return envUrl || 'http://localhost:8001';
+};
+
+const BACKEND_URL = resolveBackendUrl();
 const ASSET_BASE_URL = 'https://gitlab.com/Datenflix007/alltagslabordata/-/raw/main';
 
 const sanitizeHtml = (value?: string) => (value ? value.replace(/<[^>]*>/g, '') : '');
@@ -129,7 +148,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, label }) => {
       >
         <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" style={styles.audioButtonIcon} />
         <Text style={styles.audioButtonText}>
-          {isLoading ? 'Lädt...' : isPlaying ? 'Pause' : 'Abspielen'}
+          {isLoading ? 'Laedt...' : isPlaying ? 'Pause' : 'Abspielen'}
         </Text>
       </TouchableOpacity>
       {label ? <Text style={styles.audioLabel}>{label}</Text> : null}
@@ -1022,3 +1041,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+
