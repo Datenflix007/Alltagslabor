@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Alltagslabor",
-    "slug": "frontend",
+    "name": "alltagslabor",
+    "slug": "alltagslabor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "icon.png",
-    "scheme": "frontend",
+    "scheme": "alltagslabor",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -17,7 +17,7 @@
         "backgroundColor": "#000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.datenflix.frontend"
+      "package": "com.datenflix.alltagslabor"
     },
     "web": {
       "bundler": "metro",
@@ -39,8 +39,7 @@
     "experiments": {
       "typedRoutes": true
     },
-    "extra": {
-      "router": {},
+   "extra": {
       "eas": {
         "projectId": "25fd723f-89a1-4035-88ce-2f2328b70be0"
       }
