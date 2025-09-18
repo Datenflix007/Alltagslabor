@@ -1,47 +1,42 @@
 {
   "expo": {
-    "name": "alltagslabor",
+    "name": "AlltagsLabor",
     "slug": "alltagslabor",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "icon.png",
     "scheme": "alltagslabor",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
+    "icon": "./icon.png",
+    "orientation": "portrait",
+    "ios": { "supportsTablet": true },
     "android": {
+      "package": "com.datenflix.alltagslabor",
       "adaptiveIcon": {
-        "foregroundImage": "icon.png",
+        "foregroundImage": "./icon.png",
         "backgroundColor": "#000"
       },
-      "edgeToEdgeEnabled": true,
-      "package": "com.datenflix.alltagslabor"
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "icon.png"
+      "favicon": "./icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "icon.png",
+          "image": "./icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#000"
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true
-    },
-   "extra": {
+    "experiments": { "typedRoutes": true },
+    "extra": {
       "eas": {
-        "projectId": "25fd723f-89a1-4035-88ce-2f2328b70be0"
+        "projectId": "61cf909c-73ac-4fc6-9fe0-761153013fa0"
       }
     }
   }
