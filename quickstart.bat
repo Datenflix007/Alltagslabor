@@ -328,20 +328,7 @@ if "%FRONTEND_FAILED%"=="0" (
 ) else (
   echo FRONTEND:  Installation fehlgeschlagen - siehe oben
 )
-echo(er mit Strg+C schliessen
-) else (
-  echo - Backend-Terminal mit Strg+C schliessen
-)
 echo(
-echo Viel Spass beim Entwickeln!
-echo(
-pause
-
-endlocal
-
-
-
-
 if "%FRONTEND_FAILED%"=="0" (
   echo NAECHSTE SCHRITTE:
   echo 1. Expo Go App auf Handy installieren
@@ -363,4 +350,16 @@ if "%FRONTEND_FAILED%"=="0" (
 echo(
 echo BEENDEN:
 if "%FRONTEND_FAILED%"=="0" (
-  echo - Beide Terminal-Fenst
+  echo - Beide Terminal-Fenster mit Strg+C schliessen
+) else (
+  echo - Backend-Terminal mit Strg+C schliessen
+)
+echo(
+echo Viel Spass beim Entwickeln!
+echo(
+pause
+
+endlocal
+
+
+
