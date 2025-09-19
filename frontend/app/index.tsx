@@ -678,6 +678,23 @@ export default function AlltagsLaborApp() {
     setSearchText('');
   };
 
+
+
+  const renderImpressum = () => (
+    <View style={styles.impressumContainer}>
+      <Text style={styles.impressumTitle}>Impressum</Text>
+      <Text style={styles.impressumText}>
+        Dieses Programm wurde nach der Abgabe und Bewertung von der unten benannten Veranstaltung umgesetzt. Dazu wurde ein Anteil an Code von der KI Emergent generiert.{'\n'}{'\n'}
+        Die App Idee, das Konzept und ein erster Prototyp wurde im Rahmen der unten benannten Veranstaltung an der FSU Jena entwickelt. Ergo ist dies in der zur Bewertung abgegebenen Form eine nicht kommerzielle Webseite. Eine Kennzeichnung nach Paragraf 5 TMG ist nicht notwendig.{'\n'}{'\n'}
+        Friedrich-Schiller-Universitaet Jena{'\n'}
+        Institut fuer Erziehungswissenschaft {'\n'}
+        L4a - Digitales Lehren und Lernen an der Werkstattschule Jena{'\n'}
+        Dozentin: Dr. phil. Stefanie Czempiel{'\n'}
+        Studenten: Claudius Gladewitz, Patrick Koehler, Felix Staacke{'\n'}{'\n'}
+      </Text>
+    </View>
+  );
+
   const renderCategoryList = () => (
     <ScrollView
       style={styles.categoryList}
@@ -721,6 +738,8 @@ export default function AlltagsLaborApp() {
           </View>
         );
       })}
+
+      {renderImpressum()}
     </ScrollView>
   );
 
@@ -897,23 +916,7 @@ export default function AlltagsLaborApp() {
               displayedExperiments.map(renderExperimentCard)
             )}
 
-            <View style={styles.impressumContainer}>
-              <Text style={styles.impressumTitle}>Impressum</Text>
-              <Text style={styles.impressumText}>
-                Dieses Programm wurde nach der Abgabe und Bewertung von der unten benannten Veranstaltung umgesetzt. Dazu wurde ein Anteil an Code von der KI Emergent generiert.{'\n'}{'\n'}
-
-Die App Idee, das Konzept und ein erster Prototyp wurde im Rahmen der unten benannten Veranstaltung an der FSU Jena entwickelt. 
-Ergo ist dies in der zur Bewertung abgegebenen Form eine nicht kommerziellen Webseite. Eine Kennzeichnung nach §5 TMG ist nicht notwendig.
-{'\n'}{'\n'}
-Friedrich-Schiller-Universität Jena{'\n'}
-Institut für Erziehungswissenschaft {'\n'}
-L4a - Digitales Lehren und Lernen an der Werkstattschule Jena{'\n'}
-Dozentin: Dr. phil. Stefanie Czempiel{'\n'}
-Studenten: Claudius Gladewitz, Patrick Köhler, Felix Staacke{'\n'}
-
-
-              </Text>
-            </View>
+            {renderImpressum()}
           </ScrollView>
         )}
       </View>
