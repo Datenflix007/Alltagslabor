@@ -64,10 +64,11 @@ type LanguageConfig = {
 const LANGUAGE_SOURCES: Record<LanguageCode, LanguageConfig> = {
   de: { label: 'Deutsch', url: `${ASSET_BASE_URL}/_experiments_de.json?ref_type=heads`, translated: false },
   en: { label: 'English', url: `${ASSET_BASE_URL}/_experiments_eng.json?ref_type=heads`, translated: true },
-  fr: { label: 'Francais', url: `${ASSET_BASE_URL}/_experiments_fr.json?ref_type=heads`, translated: true },
+  fr: { label: 'Français', url: `${ASSET_BASE_URL}/_experiments_fr.json?ref_type=heads`, translated: true },
   ru: { label: 'Русский', url: `${ASSET_BASE_URL}/_experiments_ru.json?ref_type=heads`, translated: true },
   uk: { label: 'українська', url: `${ASSET_BASE_URL}/_experiments_uk.json?ref_type=heads`, translated: true },
 };
+
 
 type CategoryKey = 'mechanik' | 'elektrizitaetslehre' | 'waermelehre' | 'optik';
 
@@ -112,6 +113,7 @@ const CATEGORY_CONFIG: Record<CategoryKey, CategoryConfig> = {
   },
 };
 
+
 const CATEGORY_SEQUENCE: CategoryKey[] = ['mechanik', 'elektrizitaetslehre', 'waermelehre', 'optik'];
 
 const CATEGORY_ENTRIES: { key: CategoryEntryKey; label: string }[] = [
@@ -119,6 +121,7 @@ const CATEGORY_ENTRIES: { key: CategoryEntryKey; label: string }[] = [
   { key: 'tasks', label: 'Übungsaufgaben' },
   { key: 'experiments', label: 'Experimente' },
 ];
+
 
 type UiStrings = {
   categoryLabels: Record<CategoryKey, string>;
@@ -144,6 +147,7 @@ const DEFAULT_UI_STRINGS: UiStrings = {
   backToCategories: 'Zur Themenauswahl',
   themePrefix: 'Thema: ',
 };
+
 
 const UI_STRINGS_BY_LANGUAGE: Partial<Record<LanguageCode, Partial<UiStrings>>> = {
   en: {
@@ -211,6 +215,7 @@ const UI_STRINGS_BY_LANGUAGE: Partial<Record<LanguageCode, Partial<UiStrings>>> 
     themePrefix: 'Тема: ',
   },
 };
+
 
 const normalizeValue = (value: string) =>
   value
@@ -697,7 +702,7 @@ export default function AlltagsLaborApp() {
               ) : null}
             </TouchableOpacity>
             <Text style={styles.languageNotice}>
-              Folgende Sprachen wurden mit KI uebersetzt, daher koennen Uebersetzungsfehler auftreten.
+              Folgende Sprachen wurden mit KI übersetzt, daher können Übersetzungsfehler auftreten.
             </Text>
             {translatedLanguages.map(([code, config]) => (
               <TouchableOpacity
@@ -806,7 +811,7 @@ export default function AlltagsLaborApp() {
 
 
 
-  const renderCategoryList = () => (
+  const CategoryList: React.FC = () => (
     <ScrollView
       style={styles.categoryList}
       contentContainerStyle={styles.categoryListContent}
@@ -1006,7 +1011,7 @@ export default function AlltagsLaborApp() {
             <Text style={styles.loadingText}>Experimente werden geladen...</Text>
           </View>
         ) : categoryMode ? (
-          renderCategoryList()
+          <CategoryList />
         ) : (
           <ScrollView style={styles.experimentsList}>
             <TouchableOpacity
