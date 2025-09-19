@@ -1,4 +1,4 @@
-{
+﻿{
   "cli": {
     "version": ">= 16.19.3",
     "appVersionSource": "remote"
@@ -12,10 +12,12 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "gitCommitMessage": "chore: bump version [skip ci]"
     }
   },
   "submit": {
     "production": {}
   }
 }
+
