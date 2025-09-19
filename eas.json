@@ -12,8 +12,7 @@
       "distribution": "internal"
     },
     "production": {
-      "autoIncrement": true,
-      "gitCommitMessage": "chore: bump version [skip ci]"
+      "autoIncrement": false
     }
   },
   "submit": {
