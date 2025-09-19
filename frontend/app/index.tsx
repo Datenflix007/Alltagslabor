@@ -63,10 +63,10 @@ type LanguageConfig = {
 
 const LANGUAGE_SOURCES: Record<LanguageCode, LanguageConfig> = {
   de: { label: 'Deutsch', url: `${ASSET_BASE_URL}/_experiments_de.json?ref_type=heads`, translated: false },
-  en: { label: 'Englisch', url: `${ASSET_BASE_URL}/_experiments_eng.json?ref_type=heads`, translated: true },
-  fr: { label: 'Franzoesisch', url: `${ASSET_BASE_URL}/_experiments_fr.json?ref_type=heads`, translated: true },
-  ru: { label: 'Russisch', url: `${ASSET_BASE_URL}/_experiments_ru.json?ref_type=heads`, translated: true },
-  uk: { label: 'Ukrainisch', url: `${ASSET_BASE_URL}/_experiments_uk.json?ref_type=heads`, translated: true },
+  en: { label: 'English', url: `${ASSET_BASE_URL}/_experiments_eng.json?ref_type=heads`, translated: true },
+  fr: { label: 'Francais', url: `${ASSET_BASE_URL}/_experiments_fr.json?ref_type=heads`, translated: true },
+  ru: { label: 'Русский', url: `${ASSET_BASE_URL}/_experiments_ru.json?ref_type=heads`, translated: true },
+  uk: { label: 'українська', url: `${ASSET_BASE_URL}/_experiments_uk.json?ref_type=heads`, translated: true },
 };
 
 type CategoryKey = 'mechanik' | 'elektrizitaetslehre' | 'waermelehre' | 'optik';
@@ -91,17 +91,17 @@ const CATEGORY_CONFIG: Record<CategoryKey, CategoryConfig> = {
   },
   elektrizitaetslehre: {
     key: 'elektrizitaetslehre',
-    label: 'Elektrizitaetslehre',
-    theoryTitle: 'Elektrizitaetslehre Theorie',
-    tasksTitle: 'Elektrizitaetslehre Aufgaben',
-    experimentsPrefix: 'Elektrizitaetslehre',
+    label: 'Elektrizitätslehre',
+    theoryTitle: 'Elektrizitätslehre Theorie',
+    tasksTitle: 'Elektrizitätslehre Aufgaben',
+    experimentsPrefix: 'Elektrizitätslehre',
   },
   waermelehre: {
     key: 'waermelehre',
-    label: 'Waermelehre',
-    theoryTitle: 'Waermelehre Theorie',
-    tasksTitle: 'Waermelehre Aufgaben',
-    experimentsPrefix: 'Waermelehre',
+    label: 'Wärmelehre',
+    theoryTitle: 'Wärmelehre Theorie',
+    tasksTitle: 'Wärmelehre Aufgaben',
+    experimentsPrefix: 'Wärmelehre',
   },
   optik: {
     key: 'optik',
@@ -116,9 +116,101 @@ const CATEGORY_SEQUENCE: CategoryKey[] = ['mechanik', 'elektrizitaetslehre', 'wa
 
 const CATEGORY_ENTRIES: { key: CategoryEntryKey; label: string }[] = [
   { key: 'theory', label: 'Theorie' },
-  { key: 'tasks', label: 'Uebungsaufgaben' },
+  { key: 'tasks', label: 'Übungsaufgaben' },
   { key: 'experiments', label: 'Experimente' },
 ];
+
+type UiStrings = {
+  categoryLabels: Record<CategoryKey, string>;
+  entryLabels: Record<CategoryEntryKey, string>;
+  introText: string;
+  backToCategories: string;
+  themePrefix: string;
+};
+
+const DEFAULT_UI_STRINGS: UiStrings = {
+  categoryLabels: {
+    mechanik: 'Mechanik',
+    elektrizitaetslehre: 'Elektrizitätslehre',
+    waermelehre: 'Wärmelehre',
+    optik: 'Optik',
+  },
+  entryLabels: {
+    theory: 'Theorie',
+    tasks: 'Übungsaufgaben',
+    experiments: 'Experimente',
+  },
+  introText: 'Bitte ein Themengebiet auswählen.',
+  backToCategories: 'Zur Themenauswahl',
+  themePrefix: 'Thema: ',
+};
+
+const UI_STRINGS_BY_LANGUAGE: Partial<Record<LanguageCode, Partial<UiStrings>>> = {
+  en: {
+    categoryLabels: {
+      mechanik: 'Mechanics',
+      elektrizitaetslehre: 'Electricity',
+      waermelehre: 'Thermodynamics',
+      optik: 'Optics',
+    },
+    entryLabels: {
+      theory: 'Theory',
+      tasks: 'Exercises',
+      experiments: 'Experiments',
+    },
+    introText: 'Please select a subject.',
+    backToCategories: 'Back to topics',
+    themePrefix: 'Topic: ',
+  },
+  fr: {
+    categoryLabels: {
+      mechanik: 'Mécanique',
+      elektrizitaetslehre: 'Électricité',
+      waermelehre: 'Thermodynamique',
+      optik: 'Optique',
+    },
+    entryLabels: {
+      theory: 'Théorie',
+      tasks: 'Exercices',
+      experiments: 'Expériences',
+    },
+    introText: 'Veuillez sélectionner un domaine.',
+    backToCategories: 'Retour aux thèmes',
+    themePrefix: 'Thème : ',
+  },
+  ru: {
+    categoryLabels: {
+      mechanik: 'Механика',
+      elektrizitaetslehre: 'Электричество',
+      waermelehre: 'Термодинамика',
+      optik: 'Оптика',
+    },
+    entryLabels: {
+      theory: 'Теория',
+      tasks: 'Упражнения',
+      experiments: 'Эксперименты',
+    },
+    introText: 'Выберите тему.',
+    backToCategories: 'Назад к темам',
+    themePrefix: 'Тема: ',
+  },
+  uk: {
+    categoryLabels: {
+      mechanik: 'Механіка',
+      elektrizitaetslehre: 'Електрика',
+      waermelehre: 'Термодинаміка',
+      optik: 'Оптика',
+    },
+    entryLabels: {
+      theory: 'Теорія',
+      tasks: 'Вправи',
+      experiments: 'Експерименти',
+    },
+    introText: 'Будь ласка, оберіть розділ.',
+    backToCategories: 'Повернутися до тем',
+    themePrefix: 'Тема: ',
+  },
+};
 
 const normalizeValue = (value: string) =>
   value
@@ -250,6 +342,23 @@ export default function AlltagsLaborApp() {
   const [languageCode, setLanguageCode] = useState<LanguageCode>('de');
   const selectedLanguage = LANGUAGE_SOURCES[languageCode];
 
+  const uiStrings = useMemo(() => {
+    const overrides = UI_STRINGS_BY_LANGUAGE[languageCode] ?? {};
+    return {
+      categoryLabels: {
+        ...DEFAULT_UI_STRINGS.categoryLabels,
+        ...(overrides.categoryLabels ?? {}),
+      },
+      entryLabels: {
+        ...DEFAULT_UI_STRINGS.entryLabels,
+        ...(overrides.entryLabels ?? {}),
+      },
+      introText: overrides.introText ?? DEFAULT_UI_STRINGS.introText,
+      backToCategories: overrides.backToCategories ?? DEFAULT_UI_STRINGS.backToCategories,
+      themePrefix: overrides.themePrefix ?? DEFAULT_UI_STRINGS.themePrefix,
+    };
+  }, [languageCode]);
+
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedSchoolType, setSelectedSchoolType] = useState('Alle');
   const [selectedSubject, setSelectedSubject] = useState('Alle');
@@ -262,35 +371,6 @@ export default function AlltagsLaborApp() {
     () => experiments.filter((experiment) => !shouldHideExperiment(experiment)),
     [experiments]
   );
-
-  useEffect(() => {
-    loadExperiments(languageCode);
-  }, [languageCode, loadExperiments]);
-
-  useEffect(() => {
-    if (!experiments.length) {
-      setSelectedSchoolType('Alle');
-      setSelectedSubject('Alle');
-      setSelectedGrade('Alle');
-      setSchoolOptions(['Alle']);
-      setSubjectOptions(['Alle']);
-      setGradeOptions(['Alle']);
-      return;
-    }
-
-    const unique = (values: string[]) =>
-      Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
-        a.localeCompare(b, 'de', { numeric: true, sensitivity: 'base' })
-      );
-
-    setSchoolOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.schoolType || ''))]);
-    setSubjectOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.subject || ''))]);
-    setGradeOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.gradeLevel || ''))]);
-  }, [experiments, visibleExperiments]);
-
-  useEffect(() => {
-    setTutorialStepIndex(0);
-  }, [selectedExperiment]);
 
   const loadExperiments = useCallback(async (language: LanguageCode) => {
     const source = LANGUAGE_SOURCES[language];
@@ -322,6 +402,35 @@ export default function AlltagsLaborApp() {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    loadExperiments(languageCode);
+  }, [languageCode, loadExperiments]);
+
+  useEffect(() => {
+    if (!experiments.length) {
+      setSelectedSchoolType('Alle');
+      setSelectedSubject('Alle');
+      setSelectedGrade('Alle');
+      setSchoolOptions(['Alle']);
+      setSubjectOptions(['Alle']);
+      setGradeOptions(['Alle']);
+      return;
+    }
+
+    const unique = (values: string[]) =>
+      Array.from(new Set(values.filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b, 'de', { numeric: true, sensitivity: 'base' })
+      );
+
+    setSchoolOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.schoolType || ''))]);
+    setSubjectOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.subject || ''))]);
+    setGradeOptions(['Alle', ...unique(visibleExperiments.map((exp) => exp.gradeLevel || ''))]);
+  }, [experiments, visibleExperiments]);
+
+  useEffect(() => {
+    setTutorialStepIndex(0);
+  }, [selectedExperiment]);
 
   const applyFilters = (
     searchValue: string,
@@ -695,21 +804,24 @@ export default function AlltagsLaborApp() {
     </View>
   );
 
+
+
   const renderCategoryList = () => (
     <ScrollView
       style={styles.categoryList}
       contentContainerStyle={styles.categoryListContent}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.categoryIntro}>Bitte ein Themengebiet auswaehlen.</Text>
+      <Text style={styles.categoryIntro}>{uiStrings.introText}</Text>
       {CATEGORY_SEQUENCE.map((key) => {
         const config = getCategoryConfig(key);
         const expanded = expandedCategory === key;
+        const categoryLabel = uiStrings.categoryLabels[key] ?? config.label;
 
         return (
           <View key={key} style={styles.categoryCard}>
             <TouchableOpacity style={styles.categoryHeader} onPress={() => toggleCategory(key)}>
-              <Text style={styles.categoryTitle}>{config.label}</Text>
+              <Text style={styles.categoryTitle}>{categoryLabel}</Text>
               <Ionicons
                 name={expanded ? 'chevron-up' : 'chevron-down'}
                 size={18}
@@ -718,21 +830,24 @@ export default function AlltagsLaborApp() {
             </TouchableOpacity>
             {expanded ? (
               <View style={styles.categoryOptions}>
-                {CATEGORY_ENTRIES.map((entry, entryIndex) => (
-                  <TouchableOpacity
-                    key={entry.key}
-                    style={[
-                      styles.categoryOptionButton,
-                      entryIndex === CATEGORY_ENTRIES.length - 1
-                        ? styles.categoryOptionButtonLast
-                        : null,
-                    ]}
-                    onPress={() => handleCategoryEntryPress(key, entry.key)}
-                  >
-                    <Text style={styles.categoryOptionLabel}>{entry.label}</Text>
-                    <Ionicons name='chevron-forward' size={16} color='#c41e3a' />
-                  </TouchableOpacity>
-                ))}
+                {CATEGORY_ENTRIES.map((entry, entryIndex) => {
+                  const optionLabel = uiStrings.entryLabels[entry.key] ?? entry.label;
+                  return (
+                    <TouchableOpacity
+                      key={entry.key}
+                      style={[
+                        styles.categoryOptionButton,
+                        entryIndex === CATEGORY_ENTRIES.length - 1
+                          ? styles.categoryOptionButtonLast
+                          : null,
+                      ]}
+                      onPress={() => handleCategoryEntryPress(key, entry.key)}
+                    >
+                      <Text style={styles.categoryOptionLabel}>{optionLabel}</Text>
+                      <Ionicons name='chevron-forward' size={16} color='#c41e3a' />
+                    </TouchableOpacity>
+                  );
+                })}
               </View>
             ) : null}
           </View>
@@ -823,9 +938,11 @@ export default function AlltagsLaborApp() {
   );
 
   const displayedExperiments = categoryMode ? [] : filteredExperiments;
-  const activeCategoryLabel = activeCategory ? getCategoryConfig(activeCategory).label : null;
+  const activeCategoryName = activeCategory
+    ? uiStrings.categoryLabels[activeCategory] ?? getCategoryConfig(activeCategory).label
+    : null;
   const resultLabel = categoryMode
-    ? 'Bitte ein Themengebiet auswaehlen'
+    ? uiStrings.introText
     : `${displayedExperiments.length} Experimente gefunden`;
 
   return (
@@ -902,11 +1019,13 @@ export default function AlltagsLaborApp() {
                 color='#c41e3a'
                 style={styles.backToCategoriesIcon}
               />
-              <Text style={styles.backToCategoriesLabel}>Zur Themenauswahl</Text>
+              <Text style={styles.backToCategoriesLabel}>{uiStrings.backToCategories}</Text>
             </TouchableOpacity>
             <Text style={styles.resultCount}>{resultLabel}</Text>
-            {activeCategoryLabel ? (
-              <Text style={styles.activeCategoryLabel}>Thema: {activeCategoryLabel}</Text>
+            {activeCategoryName ? (
+              <Text style={styles.activeCategoryLabel}>
+                {`${uiStrings.themePrefix}${activeCategoryName}`}
+              </Text>
             ) : null}
             {displayedExperiments.length === 0 ? (
               <Text style={styles.noResults}>
