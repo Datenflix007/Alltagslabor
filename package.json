@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@react-native-picker/picker": "2.11.1",
     "expo": "^54.0.8"
   },
   "devDependencies": {
