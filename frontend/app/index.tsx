@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -52,6 +52,22 @@ const resolveBackendUrl = () => {
 
 const BACKEND_URL = resolveBackendUrl();
 const ASSET_BASE_URL = 'https://gitlab.com/Datenflix007/alltagslabordata/-/raw/main';
+
+type LanguageCode = 'de' | 'en' | 'fr' | 'ru' | 'uk';
+
+type LanguageConfig = {
+  label: string;
+  url: string;
+  translated: boolean;
+};
+
+const LANGUAGE_SOURCES: Record<LanguageCode, LanguageConfig> = {
+  de: { label: 'Deutsch', url: `${ASSET_BASE_URL}/_experiments_de.json?ref_type=heads`, translated: false },
+  en: { label: 'Englisch', url: `${ASSET_BASE_URL}/_experiments_eng.json?ref_type=heads`, translated: true },
+  fr: { label: 'Franzoesisch', url: `${ASSET_BASE_URL}/_experiments_fr.json?ref_type=heads`, translated: true },
+  ru: { label: 'Russisch', url: `${ASSET_BASE_URL}/_experiments_ru.json?ref_type=heads`, translated: true },
+  uk: { label: 'Ukrainisch', url: `${ASSET_BASE_URL}/_experiments_uk.json?ref_type=heads`, translated: true },
+};
 
 const sanitizeHtml = (value?: string) => (value ? value.replace(/<[^>]*>/g, '') : '');
 const displayTitle = (value: string) => value.replace(/^_+/, '').trim();
@@ -164,6 +180,10 @@ export default function AlltagsLaborApp() {
   const [selectedExperiment, setSelectedExperiment] = useState<Experiment | null>(null);
   const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
 
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [languageCode, setLanguageCode] = useState<LanguageCode>('de');
+  const selectedLanguage = LANGUAGE_SOURCES[languageCode];
+
   const [filterModalVisible, setFilterModalVisible] = useState(false);
   const [selectedSchoolType, setSelectedSchoolType] = useState('Alle');
   const [selectedSubject, setSelectedSubject] = useState('Alle');
@@ -178,8 +198,8 @@ export default function AlltagsLaborApp() {
   );
 
   useEffect(() => {
-    loadExperiments();
-  }, []);
+    loadExperiments(languageCode);
+  }, [languageCode, loadExperiments]);
 
   useEffect(() => {
     if (!experiments.length) {
@@ -206,20 +226,33 @@ export default function AlltagsLaborApp() {
     setTutorialStepIndex(0);
   }, [selectedExperiment]);
 
-  const loadExperiments = async () => {
+  const loadExperiments = useCallback(async (language: LanguageCode) => {
+    const source = LANGUAGE_SOURCES[language];
+    const applyData = (data: Experiment[]) => {
+      setExperiments(data);
+      const visibleData = data.filter((experiment) => !shouldHideExperiment(experiment));
+      setFilteredExperiments(visibleData);
+      setSelectedSchoolType('Alle');
+      setSelectedSubject('Alle');
+      setSelectedGrade('Alle');
+      setSearchText('');
+    };
+
     try {
       setLoading(true);
-      const response = await fetch(`${BACKEND_URL}/api/experiments`);
+      const response = await fetch(source.url);
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
       const data: Experiment[] = await response.json();
-      setExperiments(data);
-      setFilteredExperiments(data.filter((experiment) => !shouldHideExperiment(experiment)));
+      applyData(data);
     } catch (error) {
-      console.error('Error loading experiments:', error);
+      console.error('Error loading experiments from remote:', error);
       Alert.alert('Fehler', 'Experimente konnten nicht geladen werden');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const applyFilters = (
     searchValue: string,
@@ -441,6 +474,71 @@ export default function AlltagsLaborApp() {
     );
   };
 
+  const handleLanguageSelect = (code: LanguageCode) => {
+    if (code !== languageCode) {
+      setLanguageCode(code);
+    }
+    setLanguageModalVisible(false);
+  };
+
+  const renderLanguageModal = () => {
+    const translatedLanguages = (Object.entries(LANGUAGE_SOURCES) as [LanguageCode, LanguageConfig][])
+      .filter(([, config]) => config.translated);
+
+    return (
+      <Modal
+        visible={languageModalVisible}
+        animationType='slide'
+        transparent
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <View style={styles.languageModalOverlay}>
+          <View style={styles.languageModalContent}>
+            <View style={styles.languageModalHeader}>
+              <Text style={styles.languageModalTitle}>Sprache einstellen</Text>
+              <TouchableOpacity
+                style={styles.languageModalCloseButton}
+                onPress={() => setLanguageModalVisible(false)}
+              >
+                <Ionicons name='close' size={22} color='#333' />
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[
+                styles.languageOption,
+                languageCode === 'de' ? styles.languageOptionSelected : null,
+              ]}
+              onPress={() => handleLanguageSelect('de')}
+            >
+              <Text style={styles.languageOptionLabel}>{LANGUAGE_SOURCES.de.label}</Text>
+              {languageCode === 'de' ? (
+                <Ionicons name='checkmark' size={18} color='#c41e3a' />
+              ) : null}
+            </TouchableOpacity>
+            <Text style={styles.languageNotice}>
+              Folgende Sprachen wurden mit KI uebersetzt, daher koennen Uebersetzungsfehler auftreten.
+            </Text>
+            {translatedLanguages.map(([code, config]) => (
+              <TouchableOpacity
+                key={code}
+                style={[
+                  styles.languageOption,
+                  languageCode === code ? styles.languageOptionSelected : null,
+                ]}
+                onPress={() => handleLanguageSelect(code)}
+              >
+                <Text style={styles.languageOptionLabel}>{config.label}</Text>
+                {languageCode === code ? (
+                  <Ionicons name='checkmark' size={18} color='#c41e3a' />
+                ) : null}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   const renderFilterModal = () => (
     <Modal animationType='slide' transparent visible={filterModalVisible}>
       <View style={styles.filterModalContainer}>
@@ -526,6 +624,7 @@ export default function AlltagsLaborApp() {
     <SafeAreaView style={styles.container}>
       {renderExperimentDetail()}
       {renderFilterModal()}
+      {renderLanguageModal()}
 
       <View style={styles.header}>
         <View style={styles.logoContainer}>
@@ -535,10 +634,16 @@ export default function AlltagsLaborApp() {
           <Text style={styles.headerTitle}>AlltagsLabor</Text>
         </View>
         <TouchableOpacity
-          style={styles.headerHamburger}
-          onPress={() => setFilterModalVisible(true)}
+          style={styles.languageButton}
+          onPress={() => setLanguageModalVisible(true)}
         >
-          <Ionicons name='menu' size={26} color='#fff' />
+          <Ionicons
+            name='globe-outline'
+            size={20}
+            color='#c41e3a'
+            style={styles.languageButtonIcon}
+          />
+          <Text style={styles.languageButtonText}>{selectedLanguage.label}</Text>
         </TouchableOpacity>
       </View>
 
@@ -616,7 +721,8 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: '#c41e3a',
-    paddingVertical: 16,
+    paddingTop: 32,
+    paddingBottom: 16,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -645,8 +751,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
   },
-  headerHamburger: {
-    padding: 4,
+  languageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  languageButtonIcon: {
+    marginRight: 8,
+  },
+  languageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#c41e3a',
+    textTransform: 'uppercase',
   },
   searchContainer: {
     backgroundColor: '#fff',
@@ -717,6 +842,54 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#666',
+  },
+  languageModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    justifyContent: 'flex-end',
+  },
+  languageModalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 32,
+  },
+  languageModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  languageModalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222',
+  },
+  languageModalCloseButton: {
+    padding: 4,
+  },
+  languageNotice: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  languageOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  languageOptionSelected: {
+    backgroundColor: '#fcebed',
+  },
+  languageOptionLabel: {
+    fontSize: 16,
+    color: '#222',
   },
   experimentsList: {
     flex: 1,
