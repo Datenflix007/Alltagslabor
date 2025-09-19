@@ -69,6 +69,68 @@ const LANGUAGE_SOURCES: Record<LanguageCode, LanguageConfig> = {
   uk: { label: 'Ukrainisch', url: `${ASSET_BASE_URL}/_experiments_uk.json?ref_type=heads`, translated: true },
 };
 
+type CategoryKey = 'mechanik' | 'elektrizitaetslehre' | 'waermelehre' | 'optik';
+
+type CategoryEntryKey = 'theory' | 'tasks' | 'experiments';
+
+type CategoryConfig = {
+  key: CategoryKey;
+  label: string;
+  theoryTitle: string;
+  tasksTitle: string;
+  experimentsPrefix: string;
+};
+
+const CATEGORY_CONFIG: Record<CategoryKey, CategoryConfig> = {
+  mechanik: {
+    key: 'mechanik',
+    label: 'Mechanik',
+    theoryTitle: 'Mechanik Theorie',
+    tasksTitle: 'Mechanik Aufgaben',
+    experimentsPrefix: 'Mechanik',
+  },
+  elektrizitaetslehre: {
+    key: 'elektrizitaetslehre',
+    label: 'Elektrizitaetslehre',
+    theoryTitle: 'Elektrizitaetslehre Theorie',
+    tasksTitle: 'Elektrizitaetslehre Aufgaben',
+    experimentsPrefix: 'Elektrizitaetslehre',
+  },
+  waermelehre: {
+    key: 'waermelehre',
+    label: 'Waermelehre',
+    theoryTitle: 'Waermelehre Theorie',
+    tasksTitle: 'Waermelehre Aufgaben',
+    experimentsPrefix: 'Waermelehre',
+  },
+  optik: {
+    key: 'optik',
+    label: 'Optik',
+    theoryTitle: 'Optik Theorie',
+    tasksTitle: 'Optik Aufgaben',
+    experimentsPrefix: 'Optik',
+  },
+};
+
+const CATEGORY_SEQUENCE: CategoryKey[] = ['mechanik', 'elektrizitaetslehre', 'waermelehre', 'optik'];
+
+const CATEGORY_ENTRIES: { key: CategoryEntryKey; label: string }[] = [
+  { key: 'theory', label: 'Theorie' },
+  { key: 'tasks', label: 'Uebungsaufgaben' },
+  { key: 'experiments', label: 'Experimente' },
+];
+
+const normalizeValue = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/\u00e4/g, 'ae')
+    .replace(/\u00f6/g, 'oe')
+    .replace(/\u00fc/g, 'ue')
+    .replace(/\u00df/g, 'ss')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
 const sanitizeHtml = (value?: string) => (value ? value.replace(/<[^>]*>/g, '') : '');
 const displayTitle = (value: string) => value.replace(/^_+/, '').trim();
 const shouldHideExperiment = (experiment: Experiment) => experiment.title.trim().startsWith('__Beispiel');
@@ -180,6 +242,10 @@ export default function AlltagsLaborApp() {
   const [selectedExperiment, setSelectedExperiment] = useState<Experiment | null>(null);
   const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
 
+  const [categoryMode, setCategoryMode] = useState(true);
+  const [expandedCategory, setExpandedCategory] = useState<CategoryKey | null>(null);
+  const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(null);
+
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [languageCode, setLanguageCode] = useState<LanguageCode>('de');
   const selectedLanguage = LANGUAGE_SOURCES[languageCode];
@@ -236,6 +302,9 @@ export default function AlltagsLaborApp() {
       setSelectedSubject('Alle');
       setSelectedGrade('Alle');
       setSearchText('');
+      setCategoryMode(true);
+      setExpandedCategory(null);
+      setActiveCategory(null);
     };
 
     try {
@@ -284,6 +353,9 @@ export default function AlltagsLaborApp() {
     });
 
     setFilteredExperiments(filtered);
+    setCategoryMode(false);
+    setActiveCategory(null);
+    setExpandedCategory(null);
     setLoading(false);
   };
 
@@ -539,6 +611,119 @@ export default function AlltagsLaborApp() {
     );
   };
 
+  const getCategoryConfig = (key: CategoryKey) => CATEGORY_CONFIG[key];
+
+  const toggleCategory = (key: CategoryKey) => {
+    setExpandedCategory((current) => (current === key ? null : key));
+  };
+
+  const findExperimentByTitle = (title: string) => {
+    const target = normalizeValue(title);
+    return visibleExperiments.find((experiment) => normalizeValue(experiment.title) === target);
+  };
+
+  const handleCategoryEntryPress = (categoryKey: CategoryKey, entry: CategoryEntryKey) => {
+    const config = getCategoryConfig(categoryKey);
+
+    if (entry === 'theory' || entry === 'tasks') {
+      const targetTitle = entry === 'theory' ? config.theoryTitle : config.tasksTitle;
+      const targetExperiment = findExperimentByTitle(targetTitle);
+      if (targetExperiment) {
+        openExperiment(targetExperiment);
+      } else {
+        Alert.alert('Inhalt', 'Der Inhalt konnte nicht gefunden werden.');
+      }
+      return;
+    }
+
+    const prefix = normalizeValue(config.experimentsPrefix);
+    const theoryNormalized = normalizeValue(config.theoryTitle);
+    const tasksNormalized = normalizeValue(config.tasksTitle);
+
+    const matching = visibleExperiments.filter((experiment) => {
+      const normalizedTitle = normalizeValue(experiment.title);
+      if (normalizedTitle === theoryNormalized || normalizedTitle === tasksNormalized) {
+        return false;
+      }
+      if (!normalizedTitle.startsWith(prefix)) {
+        return false;
+      }
+      const remainder = normalizedTitle.slice(prefix.length).trimStart();
+      return /^\d/.test(remainder);
+    });
+
+    if (!matching.length) {
+      Alert.alert('Experimente', 'Zu diesem Themengebiet wurden keine Experimente gefunden.');
+      return;
+    }
+
+    setFilteredExperiments(matching);
+    setCategoryMode(false);
+    setActiveCategory(categoryKey);
+    setExpandedCategory(null);
+    setSelectedSchoolType('Alle');
+    setSelectedSubject('Alle');
+    setSelectedGrade('Alle');
+    setSearchText('');
+  };
+
+  const handleBackToCategories = () => {
+    setCategoryMode(true);
+    setActiveCategory(null);
+    setExpandedCategory(null);
+    setFilteredExperiments([]);
+    setSelectedSchoolType('Alle');
+    setSelectedSubject('Alle');
+    setSelectedGrade('Alle');
+    setSearchText('');
+  };
+
+  const renderCategoryList = () => (
+    <ScrollView
+      style={styles.categoryList}
+      contentContainerStyle={styles.categoryListContent}
+      showsVerticalScrollIndicator={false}
+    >
+      <Text style={styles.categoryIntro}>Bitte ein Themengebiet auswaehlen.</Text>
+      {CATEGORY_SEQUENCE.map((key) => {
+        const config = getCategoryConfig(key);
+        const expanded = expandedCategory === key;
+
+        return (
+          <View key={key} style={styles.categoryCard}>
+            <TouchableOpacity style={styles.categoryHeader} onPress={() => toggleCategory(key)}>
+              <Text style={styles.categoryTitle}>{config.label}</Text>
+              <Ionicons
+                name={expanded ? 'chevron-up' : 'chevron-down'}
+                size={18}
+                color='#c41e3a'
+              />
+            </TouchableOpacity>
+            {expanded ? (
+              <View style={styles.categoryOptions}>
+                {CATEGORY_ENTRIES.map((entry, entryIndex) => (
+                  <TouchableOpacity
+                    key={entry.key}
+                    style={[
+                      styles.categoryOptionButton,
+                      entryIndex === CATEGORY_ENTRIES.length - 1
+                        ? styles.categoryOptionButtonLast
+                        : null,
+                    ]}
+                    onPress={() => handleCategoryEntryPress(key, entry.key)}
+                  >
+                    <Text style={styles.categoryOptionLabel}>{entry.label}</Text>
+                    <Ionicons name='chevron-forward' size={16} color='#c41e3a' />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : null}
+          </View>
+        );
+      })}
+    </ScrollView>
+  );
+
   const renderFilterModal = () => (
     <Modal animationType='slide' transparent visible={filterModalVisible}>
       <View style={styles.filterModalContainer}>
@@ -618,7 +803,11 @@ export default function AlltagsLaborApp() {
     </Modal>
   );
 
-  const resultLabel = `${filteredExperiments.length} Experimente gefunden`;
+  const displayedExperiments = categoryMode ? [] : filteredExperiments;
+  const activeCategoryLabel = activeCategory ? getCategoryConfig(activeCategory).label : null;
+  const resultLabel = categoryMode
+    ? 'Bitte ein Themengebiet auswaehlen'
+    : `${displayedExperiments.length} Experimente gefunden`;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -680,15 +869,33 @@ export default function AlltagsLaborApp() {
             <ActivityIndicator size='large' color='#c41e3a' />
             <Text style={styles.loadingText}>Experimente werden geladen...</Text>
           </View>
+        ) : categoryMode ? (
+          renderCategoryList()
         ) : (
           <ScrollView style={styles.experimentsList}>
+            <TouchableOpacity
+              style={styles.backToCategoriesButton}
+              onPress={handleBackToCategories}
+            >
+              <Ionicons
+                name='arrow-back'
+                size={18}
+                color='#c41e3a'
+                style={styles.backToCategoriesIcon}
+              />
+              <Text style={styles.backToCategoriesLabel}>Zur Themenauswahl</Text>
+            </TouchableOpacity>
             <Text style={styles.resultCount}>{resultLabel}</Text>
-            {filteredExperiments.length === 0 && (
+            {activeCategoryLabel ? (
+              <Text style={styles.activeCategoryLabel}>Thema: {activeCategoryLabel}</Text>
+            ) : null}
+            {displayedExperiments.length === 0 ? (
               <Text style={styles.noResults}>
                 Keine Experimente gefunden. Bitte Filter anpassen.
               </Text>
+            ) : (
+              displayedExperiments.map(renderExperimentCard)
             )}
-            {filteredExperiments.map(renderExperimentCard)}
 
             <View style={styles.impressumContainer}>
               <Text style={styles.impressumTitle}>Impressum</Text>
@@ -772,6 +979,88 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#c41e3a',
     textTransform: 'uppercase',
+  },
+  categoryList: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  categoryListContent: {
+    paddingVertical: 24,
+    paddingBottom: 40,
+  },
+  categoryIntro: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  categoryCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+    marginBottom: 16,
+  },
+  categoryHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#222',
+  },
+  categoryOptions: {
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderColor: '#f0f0f0',
+  },
+  categoryOptionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: '#f7f7f7',
+  },
+  categoryOptionButtonLast: {
+    borderBottomWidth: 0,
+  },
+  categoryOptionLabel: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+  },
+  backToCategoriesButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: '#fcebed',
+    marginBottom: 12,
+  },
+  backToCategoriesIcon: {
+    marginRight: 6,
+  },
+  backToCategoriesLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#c41e3a',
+  },
+  activeCategoryLabel: {
+    fontSize: 14,
+    color: '#444',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   searchContainer: {
     backgroundColor: '#fff',
