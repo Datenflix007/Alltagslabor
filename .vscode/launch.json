@@ -1,0 +1,21 @@
+{ 
+  "version": "0.2.0", 
+  "configurations": [ 
+    { 
+      "name": "Backend Server", 
+      "type": "python", 
+      "request": "launch", 
+      "program": "${workspaceFolder}/backend/server.py", 
+      "cwd": "${workspaceFolder}/backend" 
+    } 
+    , 
+    { 
+      "name": "Expo Frontend", 
+      "type": "node", 
+      "request": "launch",   
+      "program": "${workspaceFolder}/frontend/node_modules/.bin/expo", 
+      "args": ["start"], 
+      "cwd": "${workspaceFolder}/frontend" 
+    } 
+  ] 
+} 
