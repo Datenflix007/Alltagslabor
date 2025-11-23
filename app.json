@@ -1,5 +1,5 @@
 {
-    "expo": {
+  "expo": {
     "name": "AlltagsLabor",
     "slug": "alltagslabor",
     "icon": "./icon.png",
@@ -10,28 +10,31 @@
         "foregroundImage": "./icon.png",
         "backgroundColor": "#FFFFFF"
       },
-      "permissions": ["INTERNET"]
+      "permissions": [
+        "INTERNET"
+      ]
     },
-  "androidStatusBar": {
-    "backgroundColor": "#C80032",
-    "barStyle": "light-content"
-  },
-  "androidNavigationBar": {
-    "backgroundColor": "#C80032",
-    "barStyle": "light-content"
-  },
-  "plugins": [
-    [
-      "expo-av",
-      {
-        "microphonePermission": false
+    "androidStatusBar": {
+      "backgroundColor": "#C80032",
+      "barStyle": "light-content"
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#C80032",
+      "barStyle": "light-content"
+    },
+    "newArchEnabled": false,
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "61cf909c-73ac-4fc6-9fe0-761153013fa0"
       }
-    ]
-  ],
-  "extra": {
-    "eas": {
-      "projectId": "61cf909c-73ac-4fc6-9fe0-761153013fa0"
     }
-  }
   }
 }
