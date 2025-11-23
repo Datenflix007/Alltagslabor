@@ -10,11 +10,20 @@
     "ios": { "supportsTablet": true },
     "android": {
       "package": "com.datenflix.alltagslabor",
+      "icon": "./icon.png",
       "adaptiveIcon": {
         "foregroundImage": "./icon.png",
-        "backgroundColor": "#000"
+        "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#C80032",
+      "barStyle": "light-content"
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#C80032",
+      "barStyle": "light-content"
     },
     "web": {
       "bundler": "metro",

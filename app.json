@@ -2,9 +2,22 @@
   "expo": {
     "name": "AlltagsLabor",
     "slug": "alltagslabor",
-    
+    "icon": "./icon.png",
     "android": {
-      "package": "com.datenflix.alltagslabor"
+      "package": "com.datenflix.alltagslabor",
+      "icon": "./icon.png",
+      "adaptiveIcon": {
+        "foregroundImage": "./icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#C80032",
+      "barStyle": "light-content"
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#C80032",
+      "barStyle": "light-content"
     },
     "extra": {
       "eas": {

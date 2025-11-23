@@ -1,4 +1,5 @@
-﻿import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// Safe-area update: this screen now uses react-native-safe-area-context to keep content clear of system bars.
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +7,14 @@ import {
   ScrollView,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   ActivityIndicator,
   Modal,
   Image,
   Platform,
+  StatusBar,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Picker } from '@react-native-picker/picker';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
@@ -52,6 +54,7 @@ const resolveBackendUrl = () => {
 
 const BACKEND_URL = resolveBackendUrl();
 const ASSET_BASE_URL = 'https://gitlab.com/Datenflix007/alltagslabordata/-/raw/main';
+const BRAND_RED = '#C80032';
 
 type LanguageCode = 'de' | 'en' | 'fr' | 'ru' | 'uk';
 
@@ -332,6 +335,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ uri, label }) => {
 };
 
 export default function AlltagsLaborApp() {
+  const insets = useSafeAreaInsets();
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [filteredExperiments, setFilteredExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -601,7 +605,7 @@ export default function AlltagsLaborApp() {
 
     return (
       <Modal visible animationType='slide'>
-        <SafeAreaView style={styles.detailContainer}>
+        <SafeAreaView style={styles.detailContainer} edges={['top', 'bottom']}>
           <View style={styles.detailHeader}>
             <TouchableOpacity onPress={closeExperiment} style={styles.backButton}>
               <Ionicons name='arrow-back' size={22} color='#fff' />
@@ -610,7 +614,10 @@ export default function AlltagsLaborApp() {
             <Text style={styles.detailTitle}>{displayTitle(selectedExperiment.title)}</Text>
           </View>
 
-          <ScrollView style={styles.detailScroll}>
+          <ScrollView
+            style={styles.detailScroll}
+            contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
+          >
             <View style={styles.detailMeta}>
               <Text style={styles.detailSubject}>{selectedExperiment.subject}</Text>
               <Text style={styles.detailGrade}>Klassenstufe: {selectedExperiment.gradeLevel}</Text>
@@ -698,7 +705,7 @@ export default function AlltagsLaborApp() {
             >
               <Text style={styles.languageOptionLabel}>{LANGUAGE_SOURCES.de.label}</Text>
               {languageCode === 'de' ? (
-                <Ionicons name='checkmark' size={18} color='#c41e3a' />
+                <Ionicons name='checkmark' size={18} color={BRAND_RED} />
               ) : null}
             </TouchableOpacity>
             <Text style={styles.languageNotice}>
@@ -715,7 +722,7 @@ export default function AlltagsLaborApp() {
               >
                 <Text style={styles.languageOptionLabel}>{config.label}</Text>
                 {languageCode === code ? (
-                  <Ionicons name='checkmark' size={18} color='#c41e3a' />
+                  <Ionicons name='checkmark' size={18} color={BRAND_RED} />
                 ) : null}
               </TouchableOpacity>
             ))}
@@ -814,7 +821,10 @@ export default function AlltagsLaborApp() {
   const CategoryList: React.FC = () => (
     <ScrollView
       style={styles.categoryList}
-      contentContainerStyle={styles.categoryListContent}
+      contentContainerStyle={[
+        styles.categoryListContent,
+        { paddingBottom: 40 + insets.bottom },
+      ]}
       showsVerticalScrollIndicator={false}
     >
       <Text style={styles.categoryIntro}>{uiStrings.introText}</Text>
@@ -830,7 +840,7 @@ export default function AlltagsLaborApp() {
               <Ionicons
                 name={expanded ? 'chevron-up' : 'chevron-down'}
                 size={18}
-                color='#c41e3a'
+                color={BRAND_RED}
               />
             </TouchableOpacity>
             {expanded ? (
@@ -849,7 +859,7 @@ export default function AlltagsLaborApp() {
                       onPress={() => handleCategoryEntryPress(key, entry.key)}
                     >
                       <Text style={styles.categoryOptionLabel}>{optionLabel}</Text>
-                      <Ionicons name='chevron-forward' size={16} color='#c41e3a' />
+                      <Ionicons name='chevron-forward' size={16} color={BRAND_RED} />
                     </TouchableOpacity>
                   );
                 })}
@@ -951,7 +961,8 @@ export default function AlltagsLaborApp() {
     : `${displayedExperiments.length} Experimente gefunden`;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle='light-content' backgroundColor={BRAND_RED} translucent={false} />
       {renderExperimentDetail()}
       {renderFilterModal()}
       {renderLanguageModal()}
@@ -970,7 +981,7 @@ export default function AlltagsLaborApp() {
           <Ionicons
             name='globe-outline'
             size={20}
-            color='#c41e3a'
+            color={BRAND_RED}
             style={styles.languageButtonIcon}
           />
           <Text style={styles.languageButtonText}>{selectedLanguage.label}</Text>
@@ -998,7 +1009,7 @@ export default function AlltagsLaborApp() {
             style={styles.advancedSearchButton}
             onPress={() => setFilterModalVisible(true)}
           >
-            <Ionicons name='filter' size={20} color='#c41e3a' style={styles.advancedSearchIcon} />
+            <Ionicons name='filter' size={20} color={BRAND_RED} style={styles.advancedSearchIcon} />
             <Text style={styles.advancedSearchText}>Erweiterte Suche</Text>
           </TouchableOpacity>
         </View>
@@ -1007,13 +1018,16 @@ export default function AlltagsLaborApp() {
       <View style={styles.content}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size='large' color='#c41e3a' />
+            <ActivityIndicator size='large' color={BRAND_RED} />
             <Text style={styles.loadingText}>Experimente werden geladen...</Text>
           </View>
         ) : categoryMode ? (
           <CategoryList />
         ) : (
-          <ScrollView style={styles.experimentsList}>
+          <ScrollView
+            style={styles.experimentsList}
+            contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
+          >
             <TouchableOpacity
               style={styles.backToCategoriesButton}
               onPress={handleBackToCategories}
@@ -1021,7 +1035,7 @@ export default function AlltagsLaborApp() {
               <Ionicons
                 name='arrow-back'
                 size={18}
-                color='#c41e3a'
+                color={BRAND_RED}
                 style={styles.backToCategoriesIcon}
               />
               <Text style={styles.backToCategoriesLabel}>{uiStrings.backToCategories}</Text>
@@ -1054,7 +1068,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f2f2f2',
   },
   header: {
-    backgroundColor: '#c41e3a',
+    backgroundColor: BRAND_RED,
     paddingTop: 32,
     paddingBottom: 16,
     paddingHorizontal: 20,
@@ -1104,7 +1118,7 @@ const styles = StyleSheet.create({
   languageButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#c41e3a',
+    color: BRAND_RED,
     textTransform: 'uppercase',
   },
   categoryList: {
@@ -1181,7 +1195,7 @@ const styles = StyleSheet.create({
   backToCategoriesLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#c41e3a',
+    color: BRAND_RED,
   },
   activeCategoryLabel: {
     fontSize: 14,
@@ -1220,7 +1234,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   searchButton: {
-    backgroundColor: '#c41e3a',
+    backgroundColor: BRAND_RED,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 6,
@@ -1243,7 +1257,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   advancedSearchText: {
-    color: '#c41e3a',
+    color: BRAND_RED,
     fontWeight: '600',
   },
   content: {
@@ -1319,7 +1333,7 @@ const styles = StyleSheet.create({
   },
   noResults: {
     textAlign: 'center',
-    color: '#c41e3a',
+    color: BRAND_RED,
     marginBottom: 24,
     fontSize: 14,
   },
@@ -1349,7 +1363,7 @@ const styles = StyleSheet.create({
   },
   cardSubject: {
     fontSize: 14,
-    color: '#c41e3a',
+    color: BRAND_RED,
     fontWeight: '600',
   },
   cardGrade: {
@@ -1380,7 +1394,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#c41e3a',
+    backgroundColor: BRAND_RED,
   },
   backButton: {
     flexDirection: 'row',
@@ -1412,7 +1426,7 @@ const styles = StyleSheet.create({
   detailSubject: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#c41e3a',
+    color: BRAND_RED,
     marginBottom: 4,
   },
   detailGrade: {
@@ -1481,7 +1495,7 @@ const styles = StyleSheet.create({
   audioButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#c41e3a',
+    backgroundColor: BRAND_RED,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 24,
@@ -1512,7 +1526,7 @@ const styles = StyleSheet.create({
   tutorialButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#c41e3a',
+    backgroundColor: BRAND_RED,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 24,
