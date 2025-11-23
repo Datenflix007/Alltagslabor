@@ -13,25 +13,25 @@
       "permissions": ["INTERNET"]
     },
   "androidStatusBar": {
-  "backgroundColor": "#C80032",
-  "barStyle": "light-content"
+    "backgroundColor": "#C80032",
+    "barStyle": "light-content"
   },
   "androidNavigationBar": {
-  "backgroundColor": "#C80032",
-  "barStyle": "light-content"
+    "backgroundColor": "#C80032",
+    "barStyle": "light-content"
   },
   "plugins": [
-  [
-  "expo-av",
-  {
-  "microphonePermission": false
-  }
-  ]
+    [
+      "expo-av",
+      {
+        "microphonePermission": false
+      }
+    ]
   ],
   "extra": {
-  "eas": {
-  "projectId": "61cf909c-73ac-4fc6-9fe0-761153013fa0"
-  }
+    "eas": {
+      "projectId": "61cf909c-73ac-4fc6-9fe0-761153013fa0"
+    }
   }
   }
 }
