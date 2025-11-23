@@ -2,7 +2,8 @@
   "dependencies": {
     "@react-native-picker/picker": "2.11.1",
     "expo": "^54.0.8",
-    "expo-av": "~16.0.7"
+    "expo-av": "~16.0.7",
+    "react-native-safe-area-context": "^5.4.0"
   },
   "devDependencies": {
     "@types/react": "~19.1.10",
