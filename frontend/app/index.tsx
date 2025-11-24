@@ -72,6 +72,190 @@ const LANGUAGE_SOURCES: Record<LanguageCode, LanguageConfig> = {
   uk: { label: 'українська', url: `${ASSET_BASE_URL}/_experiments_uk.json?ref_type=heads`, translated: true },
 };
 
+const GOOGLE_TRANSLATE_URL = 'https://translate.googleapis.com/translate_a/single';
+const TRANSLATION_SEPARATOR = '@@__AL_SPLIT__@@';
+const TRANSLATION_BATCH_CHAR_LIMIT = 900;
+const GERMAN_KEYWORDS = [
+  ' mechanik',
+  ' physik',
+  ' gemeinschaftsschule',
+  ' klassenstufe',
+  ' aufgabe',
+  ' merksatz',
+  ' waerme',
+  ' w\u00e4rme',
+  ' elektrizit',
+  ' optik',
+  ' geschwindigkeit',
+  ' entdecke',
+  ' viel freude',
+];
+
+const encodeFormBody = (params: Record<string, string>) =>
+  Object.entries(params)
+    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(value)}`)
+    .join('&');
+
+const extractTranslationText = (payload: any) => {
+  if (!Array.isArray(payload?.[0])) {
+    return '';
+  }
+  return payload[0]
+    .map((entry: any) => (Array.isArray(entry) && typeof entry[0] === 'string' ? entry[0] : ''))
+    .join('');
+};
+
+const fetchTranslationChunk = async (text: string, targetLang: LanguageCode) => {
+  const query = encodeFormBody({ client: 'gtx', sl: 'auto', tl: targetLang, dt: 't' });
+  const response = await fetch(`${GOOGLE_TRANSLATE_URL}?${query}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+    body: encodeFormBody({ q: text }),
+  });
+  if (!response.ok) {
+    throw new Error(`Translation request failed (${response.status})`);
+  }
+  const payload = await response.json();
+  return extractTranslationText(payload);
+};
+
+const translateTextList = async (texts: string[], targetLang: LanguageCode) => {
+  if (!texts.length) {
+    return [];
+  }
+
+  const results: string[] = [];
+  let index = 0;
+
+  while (index < texts.length) {
+    const batch: string[] = [];
+    let batchChars = 0;
+
+    while (index < texts.length) {
+      const candidate = texts[index];
+      const addition = candidate.length + (batch.length ? TRANSLATION_SEPARATOR.length : 0);
+      if (batch.length > 0 && batchChars + addition > TRANSLATION_BATCH_CHAR_LIMIT) {
+        break;
+      }
+      batch.push(candidate);
+      batchChars += addition;
+      index += 1;
+    }
+
+    if (batch.length === 0) {
+      batch.push(texts[index]);
+      index += 1;
+    }
+
+    const joined = batch.join(TRANSLATION_SEPARATOR);
+    let translatedJoined = '';
+
+    try {
+      translatedJoined = await fetchTranslationChunk(joined, targetLang);
+    } catch (error) {
+      if (batch.length === 1) {
+        throw error;
+      }
+      for (const single of batch) {
+        const fallback = await fetchTranslationChunk(single, targetLang);
+        results.push(fallback);
+      }
+      continue;
+    }
+
+    const pieces = translatedJoined.split(TRANSLATION_SEPARATOR);
+    if (pieces.length !== batch.length) {
+      for (const single of batch) {
+        const fallback = await fetchTranslationChunk(single, targetLang);
+        results.push(fallback);
+      }
+    } else {
+      results.push(...pieces);
+    }
+  }
+
+  return results;
+};
+
+const containsGermanText = (value?: string) => {
+  if (!value) {
+    return false;
+  }
+  if (/[\u00e4\u00f6\u00fc\u00df\u00c4\u00d6\u00dc]/.test(value)) {
+    return true;
+  }
+  const normalized = value.toLowerCase();
+  return GERMAN_KEYWORDS.some((keyword) => normalized.includes(keyword));
+};
+
+const datasetNeedsTranslation = (experiments: Experiment[]) => {
+  return experiments.slice(0, 5).some((experiment) => {
+    if (
+      containsGermanText(experiment.title) ||
+      containsGermanText(experiment.shortDescription) ||
+      containsGermanText(experiment.subject) ||
+      containsGermanText(experiment.schoolType)
+    ) {
+      return true;
+    }
+    return experiment.steps.some(
+      (step) => containsGermanText(step.content) || containsGermanText(step.description)
+    );
+  });
+};
+
+const translateExperimentsContent = async (experiments: Experiment[], targetLang: LanguageCode) => {
+  const seen = new Set<string>();
+  const texts: string[] = [];
+
+  const collect = (value?: string) => {
+    if (!value || seen.has(value)) {
+      return;
+    }
+    seen.add(value);
+    texts.push(value);
+  };
+
+  experiments.forEach((experiment) => {
+    collect(experiment.title);
+    collect(experiment.shortDescription);
+    collect(experiment.subject);
+    collect(experiment.schoolType);
+    experiment.steps.forEach((step) => {
+      collect(step.content);
+      collect(step.description);
+    });
+  });
+
+  if (!texts.length) {
+    return experiments.map((experiment) => ({ ...experiment }));
+  }
+
+  const translatedValues = await translateTextList(texts, targetLang);
+  const lookup = new Map<string, string>();
+  texts.forEach((original, idx) => {
+    lookup.set(original, translatedValues[idx] ?? original);
+  });
+
+  const translateRequired = (value: string) => lookup.get(value) ?? value;
+  const translateOptional = (value?: string) => (value ? lookup.get(value) ?? value : value);
+
+  return experiments.map((experiment) => ({
+    ...experiment,
+    title: translateRequired(experiment.title),
+    shortDescription: translateRequired(experiment.shortDescription),
+    subject: translateRequired(experiment.subject),
+    schoolType: translateRequired(experiment.schoolType),
+    steps: experiment.steps.map((step) => ({
+      ...step,
+      content: translateRequired(step.content),
+      description: translateOptional(step.description),
+    })),
+  }));
+};
+
+const buildDatasetSignature = (experiments: Experiment[]) =>
+  experiments.map((experiment) => experiment.title).join('|');
 
 type CategoryKey = 'mechanik' | 'elektrizitaetslehre' | 'waermelehre' | 'optik';
 
@@ -231,7 +415,23 @@ const normalizeValue = (value: string) =>
     .replace(/\s+/g, ' ')
     .trim();
 
-const sanitizeHtml = (value?: string) => (value ? value.replace(/<[^>]*>/g, '') : '');
+const sanitizeHtml = (value?: string) => {
+  if (!value) {
+    return '';
+  }
+  const decoded = value
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'");
+  return decoded
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s+/, '').replace(/\s+$/, ''))
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+};
 const displayTitle = (value: string) => value.replace(/^_+/, '').trim();
 const shouldHideExperiment = (experiment: Experiment) => experiment.title.trim().startsWith('__Beispiel');
 const resolveAssetUrl = (path?: string) => {
@@ -339,6 +539,9 @@ export default function AlltagsLaborApp() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
   const [filteredExperiments, setFilteredExperiments] = useState<Experiment[]>([]);
   const [loading, setLoading] = useState(true);
+  const translatedExperimentsCache = useRef<
+    Partial<Record<LanguageCode, { signature: string; experiments: Experiment[] }>>
+  >({});
   const [searchText, setSearchText] = useState('');
   const [selectedExperiment, setSelectedExperiment] = useState<Experiment | null>(null);
   const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
@@ -383,7 +586,10 @@ export default function AlltagsLaborApp() {
 
   const loadExperiments = useCallback(async (language: LanguageCode) => {
     const source = LANGUAGE_SOURCES[language];
-    const applyData = (data: Experiment[]) => {
+    const applyData = (data: Experiment[], signature?: string, allowCache = false) => {
+      if (allowCache && signature && language !== 'de') {
+        translatedExperimentsCache.current[language] = { signature, experiments: data };
+      }
       setExperiments(data);
       const visibleData = data.filter((experiment) => !shouldHideExperiment(experiment));
       setFilteredExperiments(visibleData);
@@ -403,7 +609,33 @@ export default function AlltagsLaborApp() {
         throw new Error(`Request failed with status ${response.status}`);
       }
       const data: Experiment[] = await response.json();
-      applyData(data);
+      const datasetSignature = buildDatasetSignature(data);
+
+      if (language !== 'de') {
+        const cachedEntry = translatedExperimentsCache.current[language];
+        if (cachedEntry && cachedEntry.signature === datasetSignature) {
+          applyData(cachedEntry.experiments);
+          return;
+        }
+      }
+
+      let processedExperiments = data;
+      let shouldCache = language !== 'de';
+
+      if (language !== 'de' && datasetNeedsTranslation(data)) {
+        try {
+          processedExperiments = await translateExperimentsContent(data, language);
+        } catch (translationError) {
+          console.warn('Translation failed', translationError);
+          Alert.alert(
+            'Hinweis',
+            'Automatische Übersetzung war nicht möglich. Inhalte bleiben vorerst auf Deutsch.'
+          );
+          shouldCache = false;
+        }
+      }
+
+      applyData(processedExperiments, datasetSignature, shouldCache);
     } catch (error) {
       console.error('Error loading experiments from remote:', error);
       Alert.alert('Fehler', 'Experimente konnten nicht geladen werden');
